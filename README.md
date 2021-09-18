@@ -1,2 +1,2 @@
 # source-engine-internals
-3 internal cheats for tf2, dod and csgo all based on darkstorm. some stuff pasted but mostly by me.
+3 internal cheats for tf2, dod and csgo all based on darkstorm. some stuff pasted.
