@@ -641,6 +641,12 @@ public:
 class CDebugOverlay
 {
 public:
+	void AddLineOverlay(const Vector& origin, const Vector& dest, int r, int g, int b, bool noDepthTest, float duration)
+	{
+		typedef void(__thiscall* OriginalFn)(PVOID, const Vector&, const Vector&, int, int, int, bool, float);
+		return getvfunc<OriginalFn>(this, 4)(this, origin, dest, r, g, b, noDepthTest, duration);
+	}
+
 	bool ScreenPosition(const Vector& vIn, Vector& vOut)
 	{
 		typedef bool(__thiscall* OriginalFn)(PVOID, const Vector&, Vector&);
@@ -922,10 +928,18 @@ public:
 		return CanBackstab(this, pTarget);
 	}
 
+	Vector Weapon_ShootPosition()
+	{
+		using Fn = Vector(__thiscall*)(void*);
+		static Fn ShootPos = (Fn)gSignatures.GetClientSignature("55 8B EC 8B 11 FF 75 08");
+		return ShootPos(this);
+	}
+
 
 	//55 8B EC 8B 11 FF 75 08
 	//Weapon_ShootPosition
 	CBaseEntity* GetObserverTarget();
+	float Speed();
 	CBaseCombatWeapon * GetActiveWeapon();
 	CBaseCombatWeapon * GetWeaponFromSlot(int slot);
 
@@ -1041,7 +1055,7 @@ public:
 			return 3000.0f;
 		case WPN_Crossbow: case WPN_FestiveCrossbow: case WPN_RescueRanger:
 			return 2400.0f;
-		case WPN_Huntsman: case WPN_FestiveHuntsman: case WPN_CompoundBow:
+		case WPN_Huntsman: case WPN_CompoundBow: case WPN_FestiveHuntsman:
 			return this->GetArrowSpeed();
 		}
 		
@@ -1092,7 +1106,7 @@ public:
 
 	int GetItemDefinitionIndex()
 	{
-		static int m_iItemDefinitionIndex = gNetvars->GetOffset("DT_BaseAttributableItem", "m_iItemDefinitionIndex");
+		static int m_iItemDefinitionIndex = gNetvars->GetOffset("DT_EconEntity", "m_iItemDefinitionIndex");
 		return *reinterpret_cast<int*>(reinterpret_cast<std::uintptr_t>(this) + m_iItemDefinitionIndex);
 	}
 

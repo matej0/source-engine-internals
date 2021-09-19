@@ -1,7 +1,7 @@
 #include "Util.h"
 
 //"rebuilt"
-void UTIL_TraceLine(Vector& vecAbsStart, Vector& vecAbsEnd, unsigned int mask, CTraceFilter* pFilter, CGameTrace *tr)
+void UTIL_TraceLine(Vector vecAbsStart, Vector vecAbsEnd, unsigned int mask, CTraceFilter* pFilter, CGameTrace *tr)
 {
 	Ray_t ray;
 	ray.Init(vecAbsStart, vecAbsEnd);
@@ -71,7 +71,7 @@ void UTIL_FindHullIntersection(Vector &vecSrc, CGameTrace &tr, Vector &mins, Vec
 	}
 }
 
-bool UTIL_IsEntityVisible(CBaseEntity *pLocal, CBaseEntity *pEntity, Vector &src, Vector &dst)
+bool UTIL_IsEntityVisible(CBaseEntity *pLocal, CBaseEntity *pEntity, Vector src, Vector dst)
 {
 	CGameTrace trace;
 	CTraceFilter filter;

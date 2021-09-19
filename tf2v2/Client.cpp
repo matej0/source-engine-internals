@@ -21,7 +21,6 @@ bool __fastcall Hooked_ShouldDrawFog(PVOID ecx, PVOID edx)
 void __fastcall Hooked_MaintainSequenceTransitions(PVOID ecx, PVOID edx, IBoneSetup &boneSetup, float flCycle, Vector pos[], Quaternion q[])
 {
 	//called on client during bone setup but not on server, so off it goes.
-	gPlayerVars.Debug.msqt = true;
 	return;
 }
 
@@ -74,7 +73,6 @@ void __fastcall Hooked_AddFlag(PVOID ecx, PVOID edx, int flag)
 	//prevents EFL_DIRTY_ABSTRANSFORM from being set?
 	if (g_bConstructingBones && (flag & EFL_SETTING_UP_BONES))
 	{
-		gPlayerVars.Debug.addflag = true;
 		return;
 	}
 
@@ -85,7 +83,6 @@ bool __fastcall Hooked_Teleported(PVOID ecx, PVOID edx)
 {
 	if (g_bConstructingBones)
 	{
-		gPlayerVars.Debug.teleported = true;
 		return true;
 	}
 
@@ -103,7 +100,6 @@ void __fastcall Hooked_EstimateAbsVelocity(CBaseEntity* thisptr, PVOID edx, Vect
 	if (gPlayerVars.m_bShouldUpdateAnimations)
 	{
 		vel = thisptr->GetAbsVelocity();
-		gPlayerVars.Debug.velocity = true;
 		return;
 	}
 		
@@ -188,19 +184,19 @@ bool __fastcall Hooked_CreateMove(PVOID ClientMode, int edx, float input_sample_
 	gPlayerVars.bSendPacket = (bool*)(***(uintptr_t***)_BP - 1);
 
 	Vector vecOldViewAngles = pCommand->viewangles;
-	float flOldForwardMove = pCommand->forwardmove;
-	float flOldSideMove = pCommand->sidemove;
+	float flOldForwardMove  = pCommand->forwardmove;
+	float flOldSideMove     = pCommand->sidemove;
 
 	gMisc.SimulateLag(pCommand);
 	gMisc.RemoveDisguise();
 	gMisc.AutoJump(pBaseEntity, pCommand);
-	gAim.AutoBackstab(pBaseEntity, pCommand);
 
 	//gAim.BacktrackPlayer(pBaseEntity, pCommand);
 
 	gEnginePred.Start(pBaseEntity, pCommand);
 
 	gAim.Think(pBaseEntity, pCommand);
+	//gAim.AutoBackstab(pBaseEntity, pCommand);
 
 	gEnginePred.End(pBaseEntity);
 

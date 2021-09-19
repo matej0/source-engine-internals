@@ -13,10 +13,13 @@ void Debug(CBaseEntity* pLocal)
 	if (!pLocal || !pLocal->IsAlive())
 		return;
 
-	bool bIsProjectile = pLocal->IsHoldingProjectileWeapon();
+	if (!pLocal->GetActiveWeapon())
+		return;
 
-	gDrawManager.DrawStringA(gDrawManager.GetAltFont(), false, 50, 200, COLOR_WHITE, "proj: %s", bIsProjectile ? "true" : "false");
 
+	gDrawManager.DrawStringA(gDrawManager.GetAltFont(), false, 50, 200, COLOR_WHITE, "knife: %s", gPlayerVars.Debug.m_bHoldingKnife ? "true" : "false");
+	gDrawManager.DrawStringA(gDrawManager.GetAltFont(), false, 50, 220, COLOR_WHITE, "in range: %s", gPlayerVars.Debug.m_bInBackstabRange ? "true" : "false");
+	gDrawManager.DrawStringA(gDrawManager.GetAltFont(), false, 50, 240, COLOR_WHITE, "behind: %s", gPlayerVars.Debug.m_bIsBehindTarget ? "true" : "false");
 }
 
 

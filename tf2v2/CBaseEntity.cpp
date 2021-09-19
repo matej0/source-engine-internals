@@ -16,6 +16,62 @@ DWORD* CBaseCombatWeapon::GetWpnData()
 	return WpnData(this);
 }
 
+float CBaseEntity::Speed()
+{
+	switch (this->GetActiveWeapon()->GetItemDefinitionIndex())
+	{
+	case 18:
+	case 205:
+	case 228:
+	case 441:
+	case 513:
+	case 658:
+	case 730:
+	case 800:
+	case 809:
+	case 889:
+	case 898:
+	case 907:
+	case 916:
+	case 965:
+	case 974:
+	case 1085:
+	case 1104:
+	case 15006:
+	case 15014:
+	case 15028:
+	case 15043:
+	case 15052:
+	case 15057:
+	case 15081:
+	case 15104:
+	case 15105:
+	case 15129:
+	case 15130:
+	case 15150:
+		return 1100.0f;
+	case 127: // Direct hit
+		return 1980.0f;
+	case 414: // Libery launcher
+		return 1540.0f;
+	case WPN_FestiveGrenadeLauncher: // Grenade launchers
+	case WPN_GrenadeLauncher:
+	case WPN_IronBomber:
+		return 1215.0f;
+	case WPN_LochNLoad: // Loch
+		return 1510.0f;
+	case 39: // Flareguns
+	case 351:
+	case 740:
+		return 2000.0f;
+	case 595: // Manmelter
+		return 3000.0f;
+	case WPN_Crossbow: case WPN_FestiveCrossbow: case WPN_RescueRanger:
+		return 2400.0f;
+	}
+
+	return 0.0f;
+}
 CBaseCombatWeapon* CBaseEntity::GetActiveWeapon()
 {
 	static int m_hActiveWeapon = gNetvars->GetOffset("DT_BaseCombatCharacter", "m_hActiveWeapon");

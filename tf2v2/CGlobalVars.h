@@ -83,13 +83,13 @@ public:
 
 	float clrVisibleChamsFriendly[3] = { 1.f, 1.f, 0.f };
 	float clrXQZChamsFriendly[3] = { 1.f, 0.f, 0.f };
+
 	struct
 	{
-		bool addflag;
-		bool msqt;
-		bool velocity;
-		bool teleported;
-		bool building;
+		float m_flTimeToImpact;
+		bool m_bHoldingKnife;
+		bool m_bInBackstabRange;
+		bool m_bIsBehindTarget;
 	} Debug;
 };
 
