@@ -53,6 +53,7 @@ void Predict(CBaseEntity* pLocal, CBaseEntity* pEntity, Vector& vecHitbox)
 	float flTimeToImpact    = 0.0f;
 	float flGravity         = 0.0f;
 	float flProjectileSpeed = 0.0f;
+
 	Vector vecVelocity = Vector();
 	pEntity->EstimateAbsVelocity(vecVelocity);
 
@@ -66,7 +67,6 @@ void Predict(CBaseEntity* pLocal, CBaseEntity* pEntity, Vector& vecHitbox)
 		else
 			vecHitbox = pEntity->GetHitboxPositionCustom(3, gAim.m_Matrix[pEntity->GetIndex()]);
 
-		flProjectileSpeed = pLocal->GetActiveWeapon()->GetArrowSpeed();
 		flGravityModifier = pLocal->GetActiveWeapon()->GetArrowGravity();
 	}
 	else
@@ -75,12 +75,11 @@ void Predict(CBaseEntity* pLocal, CBaseEntity* pEntity, Vector& vecHitbox)
 			vecHitbox = pEntity->GetOrigin();
 		else
 			vecHitbox = pEntity->GetHitboxPositionCustom(3, gAim.m_Matrix[pEntity->GetIndex()]); //aim at the center otherwise 
-
-		flProjectileSpeed = pLocal->GetActiveWeapon()->GetProjectileSpeed();
 	}
 
-	flTimeToImpact = pLocal->GetEyePosition().DistTo(vecHitbox) / flProjectileSpeed;
-	flGravity = (0.5f * 800.f * flGravityModifier) * std::powf(flTimeToImpact, 2);
+	flProjectileSpeed = pLocal->GetActiveWeapon()->GetProjectileSpeed();
+	flTimeToImpact    = pLocal->GetEyePosition().DistTo(vecHitbox) / flProjectileSpeed;
+	flGravity         = (0.5f * 800.f * flGravityModifier) * std::powf(flTimeToImpact, 2);
 
 	vecHitbox.x += (vecVelocity.x * flTimeToImpact);
 	vecHitbox.y += (vecVelocity.y * flTimeToImpact);
@@ -107,15 +106,13 @@ Vector CAimbot::GetBestHitbox(CBaseEntity* pLocal, CBaseEntity* pEntity, CUserCm
 		}
 		else
 		{
-			if ((pLocal->GetCond() & TFCond_Zoomed && pLocal->GetClassNum() == TF2_Sniper && pLocal->GetActiveWeapon()->GetSlot() == TF_WEAPONSLOT_PRIMARY) ||
-				(pLocal->GetClassNum() == TF2_Spy && pLocal->GetActiveWeapon()->GetItemDefinitionIndex() == WPN_Ambassador))
-			{
+			bool bIsSniper = (pLocal->GetCond() & TFCond_Zoomed && pLocal->GetClassNum() == TF2_Sniper && pLocal->GetActiveWeapon()->GetSlot() == TF_WEAPONSLOT_PRIMARY);
+			bool bIsAmbySpy = (pLocal->GetClassNum() == TF2_Spy && pLocal->GetActiveWeapon()->GetItemDefinitionIndex() == WPN_Ambassador);
+			
+			if (bIsSniper || bIsAmbySpy)
 				vecHitbox = pEntity->GetHitboxPositionCustom(HITBOX_HEAD, pMatrix);
-			}
 			else
-			{
 				vecHitbox = pEntity->GetHitboxPositionCustom(HITBOX_PELVIS, pMatrix);
-			}
 		}
 	}
 
@@ -354,29 +351,25 @@ bool DoSwingTrace(CBaseEntity* pLocal, CGameTrace* pTrace)
 	static Vector vecSwingMaxs(18, 18, 18);
 	float flKnifeRange = 48.f; //48.f for all except sword ( its like 70 normal and 120 when charging ).
 
-	Vector vLocalViewAngles;
-	gInts.Engine->GetViewAngles(vLocalViewAngles);
+	Vector vecForward;
+	AngleVectors(pLocal->GetEyePosition(), &vecForward);
 
-	Vector vForward;
-	AngleVectors(vLocalViewAngles, &vForward);
-
-	Vector vStart = pLocal->GetEyePosition();
-	Vector vEnd = vStart + vForward * flKnifeRange;
+	Vector vecSwingStart = pLocal->GetEyePosition();
+	Vector vecSwingEnd = vecSwingStart + vecForward * flKnifeRange;
 
 	CTraceFilter filter;
 	filter.pSkip = pLocal;
+	UTIL_TraceLine(vecSwingStart, vecSwingEnd, MASK_SHOT, &filter, pTrace);
 
-	UTIL_TraceLine(vStart, vEnd, MASK_SOLID, &filter, pTrace);
-
-	
-	if (pTrace->fraction > 1.0f)
+	if (pTrace->fraction >= 1.0f)
 	{
 		//tf2 does a hull trace if the trace ray doesnt hit anything
-		UTIL_TraceHull(vStart, vEnd, vecSwingMins, vecSwingMaxs, MASK_SOLID, &filter, pTrace);
+		UTIL_TraceHull(vecSwingStart, vecSwingEnd, vecSwingMins, vecSwingMaxs, MASK_SOLID, &filter, pTrace);
 
-		//tf2 calls "FindHullIntersection" which ive rebuilt but i realized this isnt necessary, they use it to see if you hit nonplayer entities or something.
-		//you can still find the "rebuilt" function in utils.
-		return pTrace->fraction < 1.0f;
+		if (pTrace->fraction < 1.0f) //idk if we really need to do this but whatever.
+		{
+			vecSwingEnd = pTrace->endpos;
+		}
 	}
 
 	return pTrace->fraction < 1.0f;
@@ -395,25 +388,26 @@ void CAimbot::AutoBackstab(CBaseEntity* pLocal, CUserCmd* pCmd)
 	if (!pLocal->GetActiveWeapon())
 		return;
 
-	if (pLocal->GetActiveWeapon()->GetClientClass()->iClassID != CTFKnife)
-		return; 
-
 	//funny comment i found in the tf2 source code:
-	/// Not scaling down the range for smaller models because midgets need all the help they can get
+    /// Not scaling down the range for smaller models because midgets need all the help they can get
 
-	CGameTrace trace;
-	if (DoSwingTrace(pLocal, &trace) && !(pLocal->GetCond() & TFCond_Cloaked))
+	if (pLocal->GetActiveWeapon()->GetClientClass()->iClassID == CTFKnife)
 	{
-		if (trace.m_pEnt && trace.m_pEnt->IsPlayer())
+		CGameTrace trace;
+		if (DoSwingTrace(pLocal, &trace))
 		{
-			if (trace.m_pEnt->GetTeam() != pLocal->GetTeam())
+			if (trace.m_pEnt && trace.m_pEnt->IsPlayer())
 			{
-				if (pLocal->CanPerformBackstabAgainstTarget(trace.m_pEnt))
+				if (trace.m_pEnt->GetTeam() != pLocal->GetTeam())
 				{
-					pCmd->buttons |= IN_ATTACK;
+					if (pLocal->IsBehindAndFacingTarget(trace.m_pEnt))
+					{
+						pCmd->buttons |= IN_ATTACK;
+					}
 				}
 			}
 		}
+
 	}
 }
 
@@ -426,13 +420,15 @@ void CEnginePrediction::SetPredictionPlayer(CBaseEntity* pPlayer)
 void CEnginePrediction::StartCommand(CBaseEntity* pLocal, CUserCmd* pCmd)
 {
 	pLocal->SetCurrentCommand(pCmd);
-	pLocal->SetPredictionRandomSeed(pCmd);
+	*gPlayerVars.m_pPredictionRandomSeed = MD5_PseudoRandom(pCmd->command_number) & 255; //random_seed is 0 in clientmode creatmove.
+	//pLocal->SetPredictionRandomSeed(pCmd); //in
 }
 
 void CEnginePrediction::FinishCommand(CBaseEntity* pLocal)
 {
 	pLocal->SetCurrentCommand(nullptr);
-	pLocal->SetPredictionRandomSeed(NULL);
+	*gPlayerVars.m_pPredictionRandomSeed = NULL;
+	//pLocal->SetPredictionRandomSeed(NULL);
 }
 
 void CEnginePrediction::RunPreThink(CBaseEntity* pLocal)
